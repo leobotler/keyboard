@@ -1,22 +1,52 @@
 export class AudioEngine {
     private ctx: AudioContext | null = null;
-    private node: AudioWorkletNode | null = null;
+    private node: AudioWorkletNode | OscillatorNode | null = null;
     private gain: GainNode | null = null;
+    private usesFallback: boolean = false;
+    private oscStarted: boolean = false;
 
     async init() {
         if (this.ctx) return;
-        this.ctx = new AudioContext({ latencyHint: 'interactive' });
-        // Dev server should serve repository root so this path is reachable
-        await this.ctx.audioWorklet.addModule('/src/audio/simple-processor.js');
-        this.node = new AudioWorkletNode(this.ctx, 'simple-processor');
+        this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+            latencyHint: 'interactive'
+        }) as AudioContext;
         this.gain = this.ctx.createGain();
-        this.gain.gain.value = 0.2;
+        this.gain.gain.value = 0.3;
+        
+        if (this.ctx.audioWorklet) {
+            try {
+                await this.ctx.audioWorklet.addModule('/src/audio/simple-processor.js');
+                this.node = new AudioWorkletNode(this.ctx, 'simple-processor');
+                this.usesFallback = false;
+                this.node.connect(this.gain).connect(this.ctx.destination);
+            } catch (e) {
+                this.setupFallback();
+            }
+        } else {
+            this.setupFallback();
+        }
+    }
+
+    private setupFallback() {
+        if (!this.ctx || !this.gain) return;
+        this.node = this.ctx.createOscillator();
+        (this.node as OscillatorNode).type = 'sine';
+        (this.node as OscillatorNode).frequency.value = 440;
         this.node.connect(this.gain).connect(this.ctx.destination);
+        // Don't start yet - will start after context is resumed
+        this.usesFallback = true;
     }
 
     async start() {
         if (!this.ctx) await this.init();
-        if (this.ctx && this.ctx.state === 'suspended') await this.ctx.resume();
+        if (this.ctx && this.ctx.state === 'suspended') {
+            await this.ctx.resume();
+        }
+        // Start oscillator after context is running (important for iOS)
+        if (this.usesFallback && this.node && !this.oscStarted && 'start' in this.node) {
+            (this.node as OscillatorNode).start(0);
+            this.oscStarted = true;
+        }
     }
 
     async stop() {
@@ -24,11 +54,17 @@ export class AudioEngine {
     }
 
     setFrequency(freq: number) {
-        if (this.node) this.node.port.postMessage({ frequency: freq });
+        if (this.usesFallback && this.node && 'frequency' in this.node) {
+            (this.node as OscillatorNode).frequency.value = freq;
+        } else if (this.node && 'port' in this.node) {
+            (this.node as AudioWorkletNode).port.postMessage({ frequency: freq });
+        }
     }
 
     setGain(v: number) {
         if (this.gain) this.gain.gain.value = v;
-        if (this.node) this.node.port.postMessage({ gain: v });
+        if (!this.usesFallback && this.node && 'port' in this.node) {
+            (this.node as AudioWorkletNode).port.postMessage({ gain: v });
+        }
     }
 }

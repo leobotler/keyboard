@@ -5,23 +5,38 @@ const engine = new AudioEngine();
 
 export default function AudioControls(): JSX.Element {
     const [frequency, setFrequency] = useState(440);
-    const [gain, setGain] = useState(0.2);
+    const [gain, setGain] = useState(0.3);
     const [running, setRunning] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const onStart = async () => {
-        await engine.start();
-        engine.setGain(gain);
-        engine.setFrequency(frequency);
-        setRunning(true);
+        try {
+            setError(null);
+            await engine.start();
+            engine.setGain(gain);
+            engine.setFrequency(frequency);
+            setRunning(true);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to start audio';
+            setError(message);
+            setRunning(false);
+        }
     };
 
     const onStop = async () => {
-        await engine.stop();
-        setRunning(false);
+        try {
+            setError(null);
+            await engine.stop();
+            setRunning(false);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to stop audio';
+            setError(message);
+        }
     };
 
     return (
         <div>
+            {error && <div style={{ color: 'red', marginBottom: '10px' }}>Error: {error}</div>}
             <div>
                 <label>Frequency: {frequency} Hz</label>
                 <input
