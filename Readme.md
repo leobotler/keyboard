@@ -1,0 +1,1 @@
+This is a web-based app that implements a coloured piano, teaching the user how to play a song, from a set of pre-configured songs.
