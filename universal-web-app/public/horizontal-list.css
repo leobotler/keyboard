@@ -1,0 +1,28 @@
+.horizontal-list {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px;
+    background-color: #f4f4f4;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Optional: Hide scrollbar for cleaner look */
+    scrollbar-width: thin;
+}
+
+.horizontal-list-btn {
+    flex: 0 0 auto; /* Prevents buttons from shrinking */
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.horizontal-list-btn:hover {
+    background-color: #0056b3;
+}

@@ -1,25 +1,39 @@
-const express = require('../universal-web-app/node_modules/express');
-const path = require('path');
-
+const express = require('express');
 const app = express();
-const publicPath = path.resolve(__dirname, '../universal-web-app/public');
+const path = require('path');
+const port = process.env.PORT || 3000;
 
+// Serve static files from the "public" directory
+app.use(express.static('public', { extensions: ['wav', 'mp3'] }));
+app.use('/audio', express.static('public', { extensions: ['wav', 'mp3'], setHeaders: (res, filePath) => {
+  res.setHeader('Content-Type', 'audio/*');
+}));
+
+// Set up CORS headers
 app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Accept');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Length');
+  res.setHeader('Access-Control-Allow-Headers', 'Accept-Encoding');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Accel-Buffering');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Transfer-Encoding', 'identity');
   next();
 });
 
-// Serve static files from public directory
-app.use(express.static(publicPath));
-
-// Serve index.html for all routes (SPA)
-app.use((req, res) => {
-  res.sendFile(path.join(publicPath, 'index.html'));
+// Start the server
+app.listen(port, () => {
+  console.log(`Server listening at http://localhost:${port}`);
 });
 
-const port = 3000;
-app.listen(port, () => {
-  console.log(`Dev server running at http://localhost:${port}`);
-  console.log('Serving from', publicPath);
+// Handle audio requests
+app.get('/audio/:filename', (req, res) => {
+  const filename = req.params.filename;
+  console.log(`Playing audio file: ${filename}`);
+  res.sendFile(path.join(__dirname, 'public', filename));
 });
