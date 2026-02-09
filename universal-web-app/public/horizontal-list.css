@@ -26,3 +26,13 @@
 .horizontal-list-btn:hover {
     background-color: #0056b3;
 }
+
+.piano-key-playing {
+    background-color: #ffeb3b !important; /* Bright yellow highlight */
+    fill: #ffeb3b !important; /* For SVG keys */
+    transform: scale(0.98);
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.8) !important;
+    border: 2px solid #ffeb3b !important;
+    z-index: 10;
+    transition: background-color 0.1s, transform 0.1s, fill 0.1s, border 0.1s;
+}
