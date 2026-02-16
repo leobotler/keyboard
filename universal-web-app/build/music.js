@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return null;
     };
-    
+
     const playMelody = (song) => {
         if (!audioCtx) audioCtx = new AudioContext();
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -108,6 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear any pending visual highlights from previous songs
         activeTimeouts.forEach(id => clearTimeout(id));
         activeTimeouts = [];
+
+        // Reset any stuck keys from interrupted songs (ensure mouseup is fired)
+        document.querySelectorAll('.piano-key-playing').forEach(key => {
+            key.classList.remove('piano-key-playing');
+            key.style.removeProperty('background-color');
+            key.style.removeProperty('box-shadow');
+            key.style.removeProperty('border');
+            const eventOpts = { bubbles: true, cancelable: true, view: window };
+            key.dispatchEvent(new PointerEvent('pointerup', { ...eventOpts, isPrimary: true, pointerId: 1, pointerType: 'mouse' }));
+            key.dispatchEvent(new MouseEvent('mouseup', eventOpts));
+        });
 
         let startTime = audioCtx.currentTime;
 
@@ -134,11 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const key = findKeyElement(note.n);
                 if (key) {
                     // Start Visuals
-                    if (!key.dataset.originalColor) {
-                        key.dataset.originalColor = key.style.backgroundColor;
-                    }
                     key.classList.add('piano-key-playing');
-                    key.style.setProperty('background-color', '#ffffff', 'important');
+                    key.style.setProperty('background-color', '#ffeb3b', 'important');
                     key.style.setProperty('box-shadow', '0 0 15px rgba(255, 235, 59, 0.8)', 'important');
                     key.style.setProperty('border', '2px solid #ffeb3b', 'important');
 
@@ -148,12 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const currentKey = findKeyElement(note.n) || key;
 
                         currentKey.classList.remove('piano-key-playing');
-                        if (currentKey.dataset.originalColor) {
-                            currentKey.style.backgroundColor = currentKey.dataset.originalColor;
-                            delete currentKey.dataset.originalColor;
-                        } else {
-                            //currentKey.style.removeProperty('background-color');
-                        }
+                        currentKey.style.removeProperty('background-color');
                         currentKey.style.removeProperty('box-shadow');
                         currentKey.style.removeProperty('border');
                         
@@ -190,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         btn.addEventListener('click', () => {
             playMelody(song);
+            resetKeys();
         });
     });
 });
